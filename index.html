@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8" />
+        <title>Akphabourrepif</title>
+        <style>
+            #zone_chat strong {
+                color: white;
+                background-color: black;
+                padding: 2px;
+            }
+			
+			/* SECTIONS */
+			#the_chat{
+				background-color: #ccccff;
+			}
+			#room_gestion{
+				background-color: #99ff99;
+			}
+			#waiting_room{
+				background-color: #ffff99;
+			}
+			#perso_select{
+				background-color: #99ccff;
+			}
+			#game_panel{
+				/*background-color: #ff9966;*/
+				background-image: url("images/ring.png");
+				background-size:cover;
+				height:110vh;
+			}
+			#enemyChamp {
+				float: right;
+				-webkit-transform: scaleX(-1);
+				transform: scaleX(-1);
+			}
+			.cardBoard{
+				background-color: #ff9966;
+				display: inline-block;
+			}
+			#letterList{
+				display: inline-block;
+				margin: auto;
+				width:50%;
+				text-align: center;
+			}
+			.fighterSprite{
+				display: inline-block;
+				width:42%;
+			}
+			
+			
+        </style>
+    </head>
+ 
+    <body>
+		<section id="the_chat">
+			<h1>Le chat</h1>
+
+			<form action="/" method="post" id="formulaire_chat">
+				<input type="text" name="message" id="message" placeholder="Votre message..." size="50" autofocus />
+				<input type="submit" id="envoi_message" value="Envoyer" />
+			</form>
+
+			<div id="zone_chat">
+				
+			</div>
+		</section>
+		
+		<!--------------->
+		
+		<section id="room_gestion">
+			<button id="newRoom">New Room</button>
+			<div id="room_list">
+				
+			</div>
+		</section>
+		
+		<section id="waiting_room">
+			<h1 id="room_name"></h1>
+			<h1 id="can_launch"></h1>
+			<button id="quit_button">Quit room</button>
+			<section id="perso_select">
+				<div id="champ_list"></div>
+				<div id="my_champ"></div>
+				<div id="my_champImg"></div>
+				<button id="ready">Ready</button>
+			</section>
+		</section>
+		
+		<section id="game_panel">
+			
+			<div id="upInfos">
+				<div id="allyCardBoard" class="cardBoard" style="float:left;">
+					<div id="playerChamp"></div>
+					<div id="milieuDiv"><p><a id="playerTypedLetters"></a></p></div>
+					<div id="mesPV">100</div>
+				</div>
+				<div id="letterList"></div>
+				<div id="enemyCardBoard" class="cardBoard" style="float:right;">
+					<div id="enemyChampName"></div>
+					<div id="sesPV">100</div>
+				</div>
+			</div>
+			
+			<!-- Div des degats -->
+			<div id="damageAlly"></div>
+			<div id="damageEnemy"></div>
+			
+			<div id="allyChamp"  class="fighterSprite"></div>
+			<div id="enemyChamp"  class="fighterSprite"></div>
+		</section>
+		
+		<section id="imgBank" hidden></section>
+
+
+        <script src="http://code.jquery.com/jquery-1.10.1.min.js"></script>
+        <script src="/socket.io/socket.io.js"></script>
+        <script>
+
+            // Connexion à socket.io
+            var socket = io.connect('http://localhost:8080');
+			var panels=[];
+			panels.push(document.getElementById("room_gestion"));
+			panels.push(document.getElementById("waiting_room"));
+			panels.push(document.getElementById("game_panel"));
+			
+			//Champion
+			var myChamp=null;
+			//Ready
+			var ready=false;
+			//Boolean inGame
+			var inGame=false;
+			showPanel(0);
+			
+			//PV
+			var mesPV=0;
+			var sesPV=0;
+
+			//////////////////////////////////////////////////////////////ACCUEIL//////////////////////////////////////
+			
+			// On demande le pseudo, on l'envoie au serveur et on l'affiche dans le titre
+            var pseudo = prompt('Quel est votre pseudo ?');
+            socket.emit('nouveau_client', pseudo);
+            document.title = pseudo + ' - ' + document.title;
+			socket.emit('getRoomList');
+			
+			 // Lorsqu'on envoie le formulaire, on transmet le message et on l'affiche sur la page
+            $('#formulaire_chat').submit(function () {
+                var message = $('#message').val();
+                socket.emit('message', message); // Transmet le message aux autres
+                insereMessage(pseudo, message); // Affiche le message aussi sur notre page
+                $('#message').val('').focus(); // Vide la zone de Chat et remet le focus dessus
+                return false; // Permet de bloquer l'envoi "classique" du formulaire
+            });
+			
+			//////////////////////////////////////////////////////////////// CHAT //////////////////////////////
+			
+			
+			// Quand on reçoit un message, on l'insère dans la page
+            socket.on('message', function(data) {
+                insereMessage(data.pseudo, data.message)
+            })
+			
+			// Quand un user se déconnecte
+            socket.on('deco', function(pseudo) {
+				$('#zone_chat').prepend('<p><em>' + pseudo + ' s\'est tiré !</em></p>');
+            })
+			
+			// Quand un nouveau client se connecte, on affiche l'information
+            socket.on('nouveau_client', function(pseudo) {
+                $('#zone_chat').prepend('<p><em>' + pseudo + ' a rejoint le Chat !</em></p>');
+            })
+			
+			// Ajoute un message dans la page
+            function insereMessage(pseudo, message) {
+                $('#zone_chat').prepend('<p><strong>' + pseudo + '</strong> ' + message + '</p>');
+            }
+			
+			/////////////////////////////////////////////////////////////////ROOM SELECTION ///////////////////////////////////////////
+			
+			
+			
+			//Button pour nouvelle Room
+			$('#newRoom').click(function(){
+				socket.emit('newRoom',randomRoomName());
+			});
+			
+			//Quand on demande la lsite des rooms
+			socket.on('getRoomListReturn',function(liste){
+				document.getElementById("room_list").innerHTML="";
+				liste.forEach(function(room){
+					var div=document.createElement("div");
+					var texte=document.createElement("p");
+					texte.innerHTML=room.nbJoueurs+"/2";
+					var butt=document.createElement('button');
+					butt.innerHTML=room.nom;
+					butt.onclick=function(){if(room.nbJoueurs<2){socket.emit('connectToRoom',room.nom);}};
+					div.append(butt);
+					div.append(texte);
+					$('#room_list').prepend(div);
+				});
+			})
+			
+			/////////////////////////////////////////////////////////////////WAITING ROOM ////////////////////////////////////////////
+			
+			socket.on('connectToRoomReturn', function(ret){
+				document.getElementById('room_name').innerHTML=ret.name;
+				document.getElementById('can_launch').innerHTML=ret.full;
+				showPanel(1);
+				socket.emit("getChampList");
+			})
+			$('#quit_button').click(function(){
+				socket.emit('quitRoom',"GrosKiki");
+				showPanel(0);
+			});
+			
+			/////////////////////////////////////////////////////////////////PERSO SELECT ///////////////////////////////////////////////
+			
+			socket.on('getChampListReturn', function(champList){
+				var laDiv=document.getElementById("champ_list");
+				laDiv.innerHTML="";
+				for(var i=0; i< champList.length ; i++){
+					loadImage(champList[i].nom);
+					var button=document.createElement("button");
+					button.innerHTML=champList[i].nom;
+					button.onclick=function(){
+						myChamp=this.innerHTML;
+						document.getElementById("my_champ").innerHTML=myChamp;
+						document.getElementById("my_champImg").innerHTML="";
+						var clone=document.getElementById("img"+myChamp).cloneNode(true);
+						clone.classList.add("fighterSprite");
+						document.getElementById("my_champImg").appendChild(clone);
+					}
+					laDiv.append(button);
+				}
+			});
+			$('#ready').click(function(){
+				if(myChamp!=null){
+					ready=!ready;
+					if(ready){
+						socket.emit('player_ready',{"ready":true,"champ":myChamp});
+					}
+					else{
+						socket.emit('player_ready',{"ready":false,"champ":null});
+					}
+				}
+			});
+			socket.on('otherPlayerReady', function(){
+				if(!ready){
+					console.log("Other player is ready");
+				}
+			});
+			/////////////////////////////////////////////////////////////////IN GAME //////////////////////////////////////////////////
+			
+			//Lorsqu'on appuie sur une touche
+			$(document).on('keypress', function(e) {
+				if(inGame){
+					var key = e.key;
+					socket.emit('keyPress', key);
+				}
+			});
+
+			//Debut du jeu
+			socket.on('startGame',function(data){
+				inGame=true;
+				showPanel(2);
+				mesPV=100;
+				sesPV=100;
+				
+				//Paint the players PV
+				var theString=sesPV.toString();;
+				var chiffres=(theString).split('');
+				document.getElementById("sesPV").innerHTML="";
+				chiffres.forEach(function(letter){
+					document.getElementById("sesPV").innerHTML+=getAwesomeHTMLfromChar(letter,60);
+				});
+				var theString2=mesPV.toString();
+				var chiffres2=(theString2).split('');
+				document.getElementById("mesPV").innerHTML="";
+				chiffres2.forEach(function(letter){
+					document.getElementById("mesPV").innerHTML+=getAwesomeHTMLfromChar(letter,60);
+				});
+				
+				document.getElementById("playerChamp").innerHTML=myChamp;
+				document.getElementById("enemyChampName").innerHTML=data;
+				
+				var clone=document.getElementById("img"+myChamp).cloneNode(true);
+				clone.classList.add("fighterSprite");
+				document.getElementById("allyChamp").appendChild(clone);
+				
+				var clone1=document.getElementById("img"+data).cloneNode(true);
+				clone1.classList.add("fighterSprite");
+				document.getElementById("enemyChamp").appendChild(clone1);
+			});
+			
+			//Au retour de l'input
+			socket.on('keyPressReturn',function(data){
+				document.getElementById("playerTypedLetters").innerHTML=data.currentString;
+				if(data.goodInput){
+					console.log("ça commence bien!");
+				}
+				else{
+					console.log("T'ecris de la merde!");
+				}
+			});
+			
+			// Aux coups envoyés
+			socket.on('hit',function(data){
+				sesPV+=data;
+				if(sesPV<0){
+					//Il a perdu !
+				}
+				if(sesPV>100){
+					sesPV=100;
+				}
+				var theString=sesPV.toString();;
+				var chiffres=(theString).split('');
+				document.getElementById("sesPV").innerHTML="";
+				chiffres.forEach(function(letter){
+					document.getElementById("sesPV").innerHTML+=getAwesomeHTMLfromChar(letter,60);
+				});
+				
+				if(data>0){
+					console.log("La vache! Il s'est soigné du "+data);
+				}else{
+					console.log("bien joué! Tu as tapé du "+data);
+				}
+			});
+			// Aux coups recus
+			socket.on('hited',function(data){
+				mesPV+=data;
+				if(mesPV<0){
+					// Tu as perdu !
+				}
+				if(mesPV>100){
+					mesPV=100;
+				}
+				var theString=mesPV.toString();
+				var chiffres=(theString).split('');
+				document.getElementById("mesPV").innerHTML="";
+				chiffres.forEach(function(letter){
+					document.getElementById("mesPV").innerHTML+=getAwesomeHTMLfromChar(letter,60);
+				});
+				
+				if(data>0){
+					console.log("La vache! Tu t'es soigné du "+data);
+				}else{
+					console.log("Tu t'es pris "+data+" dans la gueule!");
+				}
+				
+			});
+			//Update des lettres
+			socket.on('fightInfo',function(data){
+				document.getElementById("letterList").innerHTML="";
+				data.comboLetters.forEach(function(letter){
+					document.getElementById("letterList").innerHTML+=getAwesomeHTMLfromChar(letter,30);
+				});
+			});
+            
+			////////////////////////////////////////////////////////////////GLOBAL FUNCTIONS////////////////////
+			
+			//affiche le bon panel
+			function showPanel(nbPanel){
+				panels.forEach(function(p){p.hidden=true;});
+				panels[nbPanel].hidden=false;
+			}
+			//Room name generation
+			function randomRoomName(){
+				return String.fromCharCode(randomInt(),randomInt(),randomInt(),randomInt(),randomInt(),randomInt(),randomInt(),randomInt());
+				
+			}
+			function randomInt(){
+				return Math.floor(Math.random() * Math.floor(122-97)+97);
+			}
+			
+			//Convert a string into an awesome serie of images (Work with numbers and spaces)
+			function getAwesomeHTMLfromChar(char,charWidth){
+				var ret="";
+				if(char!=' '){
+					ret+='<img src="images/chars/'+char+'.png" style="display: inline-block; width: '+charWidth+'px;">';
+				}
+				else{
+					ret+='<i style="display: inline-block; width: '+charWidth+'px;">   </i>';
+				}
+				return ret;
+			}
+			//Ajoute une image à la banque avec son nom en id
+			function loadImage(imageName){
+				var imgBank=document.getElementById("imgBank");
+				var newImg=document.createElement('img');
+				newImg.src="images/"+imageName+".png";
+				newImg.id="img"+imageName;
+				imgBank.appendChild(newImg);
+			}
+			
+			
+        </script>
+    </body>
+</html>

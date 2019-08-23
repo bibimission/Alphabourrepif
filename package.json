@@ -1,0 +1,16 @@
+{
+  "name": "alphabourrepif",
+  "version": "1.0.0",
+  "description": "Taper sur les gens grace a l'alphabet",
+  "dependencies": {
+    "express": "~3.3.4",
+    "socket.io": "~1.2.1",
+    "ent": "~0.1.0"
+  },
+  "main": "index.js",
+  "scripts": {
+    "test": "run"
+  },
+  "author": "bibi",
+  "license": "ISC"
+}
