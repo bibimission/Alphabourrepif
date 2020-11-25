@@ -9,8 +9,11 @@
   },
   "main": "index.js",
   "scripts": {
-    "test": "run"
+    "test": "mocha tests"
   },
   "author": "bibi",
-  "license": "ISC"
+  "license": "ISC",
+  "devDependencies": {
+    "should": "^13.2.3"
+  }
 }
