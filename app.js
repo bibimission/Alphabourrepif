@@ -315,7 +315,7 @@ function Game(){
 		//On vire les lettres utilisees
 		for(var i=0;i<lettersUsed.length;i++){
 			var index=this.lettres.indexOf(lettersUsed[i]);
-			this.lettres.replace(index,1);
+			this.lettres.splice(index,1);
 		}
 		return ret;
 	}
