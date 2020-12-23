@@ -1,0 +1,16 @@
+cheveux,tignasse
+tete,crane,visage,tronche
+oeil,iris
+nez,peninsule,pif
+bouche,sourire,
+cou,gorge
+epaule,omoplate
+bras,cubitus
+main,mimine
+bide,ventre
+bassin,fesse
+bite,queue
+cuisse,femur
+genou,rotule
+mollet,tibia
+pied,metatarse

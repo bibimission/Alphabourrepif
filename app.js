@@ -1,4 +1,5 @@
 var express = require('express');
+var fs = require('fs');
 var app = express(),
     server = require('http').createServer(app),
     io = require('socket.io').listen(server),
@@ -8,6 +9,17 @@ app.use(express.static(__dirname+'/public'));
 // Chargement de la page index.html
 app.get('/', function (req, res) {
   res.sendfile(__dirname + '/index.html');
+});
+
+
+// BodyParts
+var fileName = 'ressources/bodyParts.txt';
+var file = fs.readFileSync(fileName);
+var lines = file.toString().split('\r\n');
+const partiesDuCorps = [];
+lines.forEach(function(l){
+	var tokens = l.split(",");
+	partiesDuCorps.push(tokens);
 });
 
 var rooms=[];
@@ -21,6 +33,10 @@ champions.push(new Champion("B.R.I.A.N",['tete','oeil','nez','bouche'],[]));
 champions.push(new Champion("Le_beauf",['bite','bassin'],['oeil',]));
 champions.push(new Champion("Jeannine",['bide',],['tete',]));
 champions.push(new Champion("Turpin",['cuisse','mollet','genou'],['epaule',]));
+
+
+
+
 
 /*
 *	L'objet socket représente un joueur
@@ -386,26 +402,6 @@ function Champion(nom,partiesOffensives,partiesDefensives){
 *	Renvoie la liste des mots d'un champion
 */
 function getAnatomie(names){
-	
-	var partiesDuCorps=[
-		['cheveux','tignasse'],
-		['tete','crane','visage','tronche'],
-		['oeil','iris'],
-		['nez','peninsule'],
-		['bouche','sourire'],
-		['cou','gorge'],
-		['epaule','omoplate'],
-		['bras','cubitus'],
-		['coude','coude'],
-		['main','mimine'],
-		['bide','ventre'],
-		['bassin','fesse'],
-		['bite','queue'],
-		['cuisse','femur'],
-		['genou','rotule'],
-		['mollet','tibia'],
-		['pied','metatarse']
-	];
 	
 	var ret=[];
 	for(var j=0; j<names.length;j++){
