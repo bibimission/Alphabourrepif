@@ -4,7 +4,7 @@
   "description": "Taper sur les gens grace a l'alphabet",
   "dependencies": {
     "express": "~3.11.0",
-    "socket.io": "~1.2.1",
+    "socket.io": "~4.5.3",
     "ent": "~0.1.0"
   },
   "main": "index.js",
