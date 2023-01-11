@@ -3,8 +3,8 @@
   "version": "1.0.0",
   "description": "Taper sur les gens grace a l'alphabet",
   "dependencies": {
-    "express": "~3.11.0",
-    "socket.io": "~1.2.1",
+    "express": "~4.18.2",
+    "socket.io": "~4.5.4",
     "ent": "~0.1.0"
   },
   "main": "index.js",
